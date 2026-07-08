@@ -124,7 +124,7 @@ I've scoped these out in detail but haven't run them yet — full technical plan
 ## Repository Structure
 
 ```
-wazuh-soar-lab/
+Threat-Hunting-with-Wazuh-and-Shuffle-SOAR/
 ├── README.md                 (you are here)
 ├── CONFIGURATION_GUIDE.md    (complete chapter-by-chapter build log)
 ├── LICENSE
