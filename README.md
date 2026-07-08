@@ -87,7 +87,7 @@ msiexec.exe /i $env:TEMP\wazuh-agent.msi /q WAZUH_MANAGER="<kali-ip>" WAZUH_AGEN
 
 Then build a Shuffle workflow: Webhook trigger → HTTP node (Bearer JWT against the Wazuh API) → Email SMTP node.
 
-## Screenshots
+## Proof of Execution
 
 | | |
 |---|---|
