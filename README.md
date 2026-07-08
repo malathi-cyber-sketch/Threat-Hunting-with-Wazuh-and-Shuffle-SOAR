@@ -112,7 +112,7 @@ By the end of the session, Wazuh's Threat Hunting view had logged 213+ hits for 
 
 ## Future Improvements
 
-I've scoped these out in detail but haven't run them yet — full technical plan for each is in [CONFIGURATION_GUIDE.md, Chapter 11](./CONFIGURATION_GUIDE.md).
+I've scoped these out in detail but haven't run them yet — full technical plan for each is in [CONFIGURATION_GUIDE.md, Chapter 11](https://github.com/malathi-cyber-sketch/Threat-Hunting-with-Wazuh-and-Shuffle-SOAR/blob/main/CONFIGURATION_GUIDE.md#chapter-11---what-im-adding-next-not-yet-implemented).
 
 - A custom Wazuh detection rule (written, not just default rules firing) to flag encoded PowerShell commands with higher confidence than the generic rule currently does
 - A VirusTotal lookup step added to the Shuffle workflow before the email fires, so notifications include a threat-intel verdict instead of just the raw alert
