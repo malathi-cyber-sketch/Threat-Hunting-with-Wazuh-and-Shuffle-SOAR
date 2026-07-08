@@ -1,10 +1,10 @@
-# Configuration Guide — Building a SOC Lab with Wazuh SIEM and Shuffle SOAR for Automated Threat Detection
+# Configuration Guide - Building a SOC Lab with Wazuh SIEM and Shuffle SOAR for Automated Threat Detection
 
 This document is my full build log, written in the order I actually did things. I'm including the parts that broke, because that's most of what I actually learned from this project. If something below reads like I got it wrong the first time and fixed it the second time, that's exactly what happened — I didn't clean that part up.
 
 ---
 
-## Chapter 1 — Introduction
+## Chapter 1 - Introduction
 
 ### Why SIEM?
 
@@ -25,13 +25,13 @@ A SIEM tells you something happened. It doesn't decide what to do next. In a rea
 
 ### Project Scope
 
-Two virtual machines. One Docker host running both the SIEM stack and the SOAR stack side by side. One monitored Windows endpoint. Everything used here is open-source and self-hosted — no cloud infrastructure and no paid licenses.
+Two virtual machines. One Docker host running both the SIEM stack and the SOAR stack side by side. One monitored Windows endpoint. Everything used here is open-source and self-hosted - no cloud infrastructure and no paid licenses.
 
 ---
 
-## Chapter 2 — Lab Architecture
+## Chapter 2 - Lab Architecture
 
-I began this project by reusing the virtual lab environment from my earlier SIEM build, created in VMware Workstation. The goal was the same as before — simulate a small enterprise network where security events on a Windows endpoint get picked up by Wazuh — but this time with a second layer added on top: Shuffle, sitting between the alert and the analyst's inbox.
+I began this project by reusing the virtual lab environment from my earlier SIEM build, created in VMware Workstation. The goal was the same as before - simulate a small enterprise network where security events on a Windows endpoint get picked up by Wazuh — but this time with a second layer added on top: Shuffle, sitting between the alert and the analyst's inbox.
 
 - **Hypervisor:** VMware Workstation (VirtualBox also works fine for this — I used VirtualBox for the Kali VM specifically in this build)
 - **VM 1 — Kali Linux:** 7 GB RAM, 5 vCPUs on an i5-1235U host, roughly 47 GB disk. Runs Docker and hosts both the Wazuh stack and the Shuffle stack.
@@ -52,11 +52,10 @@ docker --version
 
 I decided against a third VM for Shuffle. Running it as additional Docker containers on the same Kali host as Wazuh kept the lab simpler to manage, and the resource check above confirmed there was room for it.
 
-*(Screenshot: `08_kali_virtualbox_machine.png`)*
-
+![08_kali_virtualbox_machine.png](./screenshots/08_kali_virtualbox_machine.png)
 ---
 
-## Chapter 3 — Installing Docker
+## Chapter 3 - Installing Docker
 
 Docker was already present on this Kali VM from an earlier project, but for anyone rebuilding this lab from scratch, here's exactly what I ran and why.
 
@@ -90,7 +89,7 @@ One thing worth flagging: Kali doesn't always ship the standalone `docker-compos
 
 ---
 
-## Chapter 4 — Installing Wazuh
+## Chapter 4 - Installing Wazuh
 
 ### Why the version matters
 
@@ -143,11 +142,12 @@ docker exec -it single-node-wazuh.manager-1 /var/ossec/bin/agent_control -lc
 ID: 004, Name: windows10, IP: any, Active
 ```
 
-*(Screenshot: `09_deploy_new_wazuh_agent_page.png`, `10_wazuh_agent_install_command.png`, `20_wazuh_endpoint_agent_active.png`)*
-
+![09_deploy_new_wazuh_agent_page.png](./screenshots/09_deploy_new_wazuh_agent_page.png)
+![10_wazuh_agent_install_command.png](./screenshots/10_wazuh_agent_install_command.png)
+![20_wazuh_endpoint_agent_active.png](./screenshots/20_wazuh_endpoint_agent_active.png)
 ---
 
-## Chapter 5 — Installing Sysmon
+## Chapter 5 - Installing Sysmon
 
 ### Why Sysmon
 
@@ -188,11 +188,11 @@ Get-WinEvent -FilterHashtable @{ LogName='Microsoft-Windows-Sysmon/Operational';
 
 If these return recent events, Sysmon is generating telemetry. Confirming Wazuh was actually ingesting it meant checking the Threat Hunting view in the Dashboard, filtered on `rule.groups:sysmon`.
 
-*(Screenshot: `11_sysmon_powershell_setup.png`, `14_sysmon_events_triggered.png`)*
-
+![11_sysmon_powershell_setup.png](./screenshots/11_sysmon_powershell_setup.png)
+![14_sysmon_events_triggered.png](./screenshots/14_sysmon_events_triggered.png)
 ---
 
-## Chapter 6 — Installing Shuffle SOAR
+## Chapter 6 - Installing Shuffle SOAR
 
 ### Containers
 
@@ -204,8 +204,7 @@ git clone https://github.com/Shuffle/Shuffle.git
 cd Shuffle
 ```
 
-*(Screenshot: `02_cloning_shuffle_repo.png`)*
-
+![02_cloning_shuffle_repo.png](./screenshots/02_cloning_shuffle_repo.png)
 ### Docker Compose
 
 First attempt at bringing it up failed immediately:
@@ -228,8 +227,7 @@ ports:
 
 The container's internal port stays `9200` — nothing inside Shuffle needed to change, since its backend talks to `shuffle-opensearch:9200` over its own internal Docker network regardless of what the host-side mapping is.
 
-*(Screenshot: `03_docker_compose_port_conflict_error.png`)*
-
+![03_docker_compose_port_conflict_error.png](./screenshots/03_docker_compose_port_conflict_error.png)
 ```bash
 docker compose down
 docker compose up -d
@@ -242,8 +240,9 @@ docker ps
 
 I opened `http://192.168.100.3:3001`, created the initial admin account on Shuffle's first-run screen, and created a new workflow named **Wazuh SOAR Demo**.
 
-*(Screenshot: `01_shuffle_login_page.png`, `05_shuffle_choose_apps_dashboard.png`, `06_new_shuffle_workflow_created.png`)*
-
+![01_shuffle_login_page.png](./screenshots/01_shuffle_login_page.png)
+![05_shuffle_choose_apps_dashboard.png](./screenshots/05_shuffle_choose_apps_dashboard.png)
+![06_new_shuffle_workflow_created.png](./screenshots/06_new_shuffle_workflow_created.png)
 ### Webhook creation
 
 I dragged a **Webhook** trigger onto the canvas, saved the workflow, and clicked **Start** on the trigger to activate it. Only once it's actively running does the full webhook URL show up:
@@ -252,8 +251,8 @@ I dragged a **Webhook** trigger onto the canvas, saved the workflow, and clicked
 http://192.168.100.3:3001/api/v1/hooks/webhook_<unique-id>
 ```
 
-*(Screenshot: `07_wazuh_webhook_node_config.png`, `22_shuffle_webhook_running_config.png`)*
-
+![07_wazuh_webhook_node_config.png](./screenshots/07_wazuh_webhook_node_config.png)
+![22_shuffle_webhook_running_config.png](./screenshots/22_shuffle_webhook_running_config.png)
 ### Email configuration
 
 I configured the **Send Email SMTP** action — not "Send Email Shuffle," which I initially confused it with (see Chapter 10) — using Gmail's SMTP relay and an app password rather than my normal account password:
@@ -266,17 +265,17 @@ Password:  <gmail app password>
 Recipient: <destination address>
 ```
 
-*(Screenshot: `24_smtp_gmail_config_success.png`, `27_smtp_send_email_config_outlook.png`)*
-
+![24_smtp_gmail_config_success.png](./screenshots/24_smtp_gmail_config_success.png)
+![27_smtp_send_email_config_outlook.png](./screenshots/27_smtp_send_email_config_outlook.png)
 ---
 
-## Chapter 7 — Connecting Wazuh to Shuffle
+## Chapter 7 - Connecting Wazuh to Shuffle
 
 ### Webhook integration
 
 Shuffle has an official "Wazuh" app in its app marketplace, and I tried that first before building anything manually. It failed outright with an error about a missing app reference — covered in detail in Chapter 10. Rather than keep fighting it, I built the same integration using a generic **HTTP node** authenticating directly against the Wazuh REST API.
 
-**Step 1 — generate a JWT from Wazuh:**
+**Step 1 - generate a JWT from Wazuh:**
 
 ```bash
 curl -k -u wazuh-wui:'<api_password>' \
@@ -285,7 +284,7 @@ curl -k -u wazuh-wui:'<api_password>' \
 
 This returns a token starting `eyJ...`, valid for roughly 15 minutes.
 
-**Step 2 — configure the HTTP node:**
+**Step 2 - configure the HTTP node:**
 
 ```
 Method:      GET
@@ -330,11 +329,12 @@ curl -X POST "http://192.168.100.3:3001/api/v1/hooks/webhook_<id>" \
 
 **Expected output:** `{"success": true, "execution_id": "..."}` — confirmation the webhook received the call and kicked off the workflow.
 
-*(Screenshot: `07_wazuh_webhook_node_config.png`, `16_shuffle_workflow_diagram.png`, `17_shuffle_workflow_alerts_flowing.png`)*
-
+![07_wazuh_webhook_node_config.png](./screenshots/07_wazuh_webhook_node_config.png)
+![16_shuffle_workflow_diagram.png](./screenshots/16_shuffle_workflow_diagram.png)
+![17_shuffle_workflow_alerts_flowing.png](./screenshots/17_shuffle_workflow_alerts_flowing.png)
 ---
 
-## Chapter 8 — Generating Alerts
+## Chapter 8 - Generating Alerts
 
 I generated real telemetry on the Windows endpoint using a mix of PowerShell activity, file operations, and a network scan — kept non-destructive but realistic enough to actually trigger Wazuh's built-in detection rules.
 
@@ -366,8 +366,11 @@ nmap -A 192.168.100.4
 
 These actions generated Sysmon Event ID 1 (process creation) and Event ID 11 (file creation), which Wazuh matched against rules including `92201` (PowerShell writing a scripting file to a Temp/User data folder) and `92213` (executable dropped in a folder commonly used by malware, severity 15). I confirmed all of this in the Dashboard's Threat Hunting view, cross-checking timestamps against the Windows event logs directly on the endpoint to make sure what Wazuh reported actually matched what happened.
 
-*(Screenshot: `12_nmap_scan_windows_agent.png`, `13_generating_attack_traffic_powershell.png`, `18_attack_simulation_terminal.png`, `21_wazuh_threat_hunting_events_table.png`, `29_powershell_privilege_enum_attack.png`)*
-
+![12_nmap_scan_windows_agent.png](./screenshots/12_nmap_scan_windows_agent.png)
+![13_generating_attack_traffic_powershell.png](./screenshots/13_generating_attack_traffic_powershell.png)
+![18_attack_simulation_terminal.png](./screenshots/18_attack_simulation_terminal.png)
+![21_wazuh_threat_hunting_events_table.png](./screenshots/21_wazuh_threat_hunting_events_table.png)
+![29_powershell_privilege_enum_attack.png](./screenshots/29_powershell_privilege_enum_attack.png)
 ### MITRE ATT&CK mapping
 
 Looking back at the activity I generated, most of it lines up with named ATT&CK techniques, which I hadn't actually labeled at the time I ran them. Mapping them after the fact:
@@ -384,7 +387,7 @@ Worth being honest about the last row: the Nmap scan didn't generate a Wazuh ale
 
 ---
 
-## Chapter 9 — SOAR Automation
+## Chapter 9 - SOAR Automation
 
 To prove the pipeline wasn't a one-time lucky run, I fired ten synthetic Wazuh-shaped alerts directly at the webhook in a loop:
 
@@ -412,8 +415,9 @@ Each call ran the full chain in order:
 3. **API request** — the HTTP node authenticated against the Wazuh REST API with the Bearer JWT and got back a `200` response
 4. **Email sent** — the SMTP node fired, and a notification landed in the destination inbox within seconds
 
-*(Screenshot: `28_curl_loop_sending_test_alerts.png`, `32_email_alerts_inbox.png`, `33_email_alert_detail.png`)*
-
+![28_curl_loop_sending_test_alerts.png](./screenshots/28_curl_loop_sending_test_alerts.png)
+![32_email_alerts_inbox.png](./screenshots/32_email_alerts_inbox.png)
+![33_email_alert_detail.png](./screenshots/33_email_alert_detail.png)
 **Final success confirmed:**
 - Webhook triggered on every call, no drops
 - Workflow executed without manual intervention
@@ -422,7 +426,7 @@ Each call ran the full chain in order:
 
 ---
 
-## Chapter 10 — Challenges
+## Chapter 10 - Challenges
 
 None of the above worked on the first attempt. This is every real issue I hit, in the order I hit it, using the structure: Problem, Symptoms, Root Cause, Commands Used, Solution, What I Learned.
 
@@ -460,7 +464,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
   Start-Service WazuhSvc
   ```
 - **Solution:** Deregistered the agent on both the manager and the Windows side before re-enrolling.
-- **What I learned:** Agent identity in Wazuh depends on both a manager-side record and a local key file — resetting only one side isn't enough.
+- **What I learned:** Agent identity in Wazuh depends on both a manager-side record and a local key file - resetting only one side isn't enough.
 
 ### 4. Sysmon configuration problems
 
@@ -468,7 +472,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 - **Symptoms:** Threat Hunting view returned zero results for `rule.groups:sysmon`.
 - **Root Cause:** The `<localfile>` block for the Sysmon channel hadn't been added to the agent's `ossec.conf` yet.
 - **Solution:** Added the `eventchannel`-formatted `<localfile>` block pointed at `Microsoft-Windows-Sysmon/Operational` and restarted the agent service.
-- **What I learned:** An "Active" agent status only confirms connectivity to the manager — it says nothing about which log sources are actually being collected.
+- **What I learned:** An "Active" agent status only confirms connectivity to the manager - it says nothing about which log sources are actually being collected.
 
 ### 5. Wazuh integration script errors
 
@@ -477,7 +481,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 - **Root Cause:** My edit had accidentally created two separate `<ossec_config>` blocks instead of adding the `<integration>` tag inside the existing one — invalid XML from Wazuh's point of view.
 - **Commands used:** `docker exec -it single-node-wazuh.manager-1 tail -50 /var/ossec/logs/ossec.log`.
 - **Solution:** Removed the duplicate wrapper and kept a single `<ossec_config>` block with `<integration>` placed just before the closing tag.
-- **What I learned:** Always check the config file both before and after an edit — a malformed config often fails silently until the next restart.
+- **What I learned:** Always check the config file both before and after an edit - a malformed config often fails silently until the next restart.
 
 ### 6. Using `YOUR_HOOK_ID`
 
@@ -485,7 +489,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 - **Symptoms:** Requests to the webhook returned a 404 with no useful message.
 - **Root Cause:** I'd copied an example URL from documentation instead of the actual generated one from my running workflow.
 - **Solution:** Went back into Shuffle, opened the actual Webhook node, and copied the real generated ID.
-- **What I learned:** Never trust a URL that still contains an obvious placeholder string — always copy directly from the live node, not from memory or an example.
+- **What I learned:** Never trust a URL that still contains an obvious placeholder string - always copy directly from the live node, not from memory or an example.
 
 ### 7. Invalid webhook
 
@@ -493,7 +497,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 - **Symptoms:** The copied URL ended at `/hooks` with no trailing ID at all.
 - **Root Cause:** The workflow hadn't actually been started — Shuffle only generates the full, usable webhook path once the trigger is explicitly activated.
 - **Solution:** Saved the workflow, clicked **Start** on the Webhook trigger, then copied the complete URL including the `webhook_<uuid>` suffix.
-- **What I learned:** A webhook URL in Shuffle isn't "live" just because a workflow exists — the trigger has to be running.
+- **What I learned:** A webhook URL in Shuffle isn't "live" just because a workflow exists - the trigger has to be running.
 
 ### 8. HTTP vs HTTPS issues
 
@@ -510,8 +514,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 - **Root Cause:** Two things stacked here — first, I'd configured Basic Auth (username/password fields) instead of a Bearer token header; second, the JWT itself had expired, since it's only valid for about 15 minutes.
 - **Solution:** Cleared the username/password fields, added `Authorization: Bearer <token>` as a header, and generated a fresh token immediately before each test.
 - **What I learned:** For any short-lived-token API, plan on regenerating the token constantly during manual testing, or better, automate the refresh as its own workflow step.
-- *(Screenshot: `19_webhook_401_unauthorized_debug.png`)*
-
+- ![19_webhook_401_unauthorized_debug.png](./screenshots/19_webhook_401_unauthorized_debug.png)
 ### 10. 502 Bad Gateway
 
 - **Problem:** The Shuffle frontend returned an error page on load.
@@ -519,7 +522,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 - **Root Cause:** An earlier, incomplete Compose file I'd hand-written was missing the OpenSearch service entirely, so the backend had nothing to connect to.
 - **Commands used:** `docker logs shuffle-backend --tail 50`.
 - **Solution:** Discarded my incomplete file and used the official Shuffle repository's full `docker-compose.yml`, patching only the port line that needed changing.
-- **What I learned:** Don't hand-assemble a subset of a multi-service stack from memory — use the vendor's official file.
+- **What I learned:** Don't hand-assemble a subset of a multi-service stack from memory - use the vendor's official file.
 
 ### 11. OpenSearch failures
 
@@ -527,7 +530,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 - **Symptoms:** `docker ps` showed it repeatedly restarting; logs showed memory-related errors.
 - **Root Cause:** Default JVM heap settings for OpenSearch (3GB) were tuned for a dedicated server, not a 7GB VM already running Wazuh's own Indexer at the same time.
 - **Solution:** Reduced `OPENSEARCH_JAVA_OPTS` to `-Xms1024m -Xmx1024m` in the Compose file.
-- **What I learned:** Two OpenSearch-based stacks on the same host will both reach for defaults sized for dedicated hardware — right-size the heap to what the host can actually spare.
+- **What I learned:** Two OpenSearch-based stacks on the same host will both reach for defaults sized for dedicated hardware - right-size the heap to what the host can actually spare.
 
 ### 12. Backend unable to connect
 
@@ -535,21 +538,21 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 - **Symptoms:** `connect: connection refused` targeting `shuffle-opensearch:9200`.
 - **Root Cause:** OpenSearch was either still initializing or had crashed from the memory issue above.
 - **Solution:** Fixed the memory settings first (issue #11), then waited for OpenSearch to fully initialize before expecting the backend to connect.
-- **What I learned:** Multi-container stacks have startup order dependencies that aren't always obvious — a "connection refused" error from one container often means a different container hasn't finished starting yet.
+- **What I learned:** Multi-container stacks have startup order dependencies that aren't always obvious - a "connection refused" error from one container often means a different container hasn't finished starting yet.
 
 ### 13. Workflow not triggering
 
 - **Problem:** Clicking the manual Run button in Shuffle's UI did nothing.
 - **Symptoms:** No execution appeared in the workflow history.
-- **Root Cause:** A Webhook-triggered workflow only runs on an actual incoming HTTP request — it isn't something the in-UI Run button can trigger manually.
+- **Root Cause:** A Webhook-triggered workflow only runs on an actual incoming HTTP request - it isn't something the in-UI Run button can trigger manually.
 - **Solution:** Triggered it properly using `curl -X POST <webhook_url>` instead.
-- **What I learned:** Different trigger types behave completely differently when testing — know which kind you're using before assuming a manual Run button applies.
+- **What I learned:** Different trigger types behave completely differently when testing - know which kind you're using before assuming a manual Run button applies.
 
 ### 14. Trigger not started
 
 - **Problem:** A saved workflow returned an error when I tried to test the webhook.
 - **Symptoms:** "1 Workflow Issue - Trigger Webhook needs to be started" banner in the UI.
-- **Root Cause:** Saving a workflow doesn't automatically activate its triggers — the Webhook node needs to be explicitly started separately.
+- **Root Cause:** Saving a workflow doesn't automatically activate its triggers - the Webhook node needs to be explicitly started separately.
 - **Solution:** Clicked **Start** on the Webhook node itself before testing.
 - **What I learned:** Save and Start are two different actions in Shuffle, and only one of them makes a trigger actually live.
 
@@ -566,7 +569,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
   sudo du -h --max-depth=1 /var/lib/docker | sort -hr
   ```
 - **Solution:** Removed exited containers and unused images first, then identified `/var/lib/docker/overlay2` as the largest remaining consumer.
-- **What I learned:** Docker will actively recreate certain stopped containers to maintain replica counts — a plain `docker stop` isn't always enough to keep them gone.
+- **What I learned:** Docker will actively recreate certain stopped containers to maintain replica counts - a plain `docker stop` isn't always enough to keep them gone.
 
 ### 16. `No space left on device`
 
@@ -580,7 +583,7 @@ None of the above worked on the first attempt. This is every real issue I hit, i
   sudo systemctl start containerd docker
   docker run hello-world
   ```
-- **What I learned:** Never manually delete inside Docker's internal storage directories. `docker system prune -a --volumes -f` is the correct way to reclaim space — a manual `rm -rf` against `overlay2` isn't a cleanup command, it's a corruption command.
+- **What I learned:** Never manually delete inside Docker's internal storage directories. `docker system prune -a --volumes -f` is the correct way to reclaim space - a manual `rm -rf` against `overlay2` isn't a cleanup command, it's a corruption command.
 
 ### 17. OpenSearch recovery
 
@@ -594,21 +597,22 @@ None of the above worked on the first attempt. This is every real issue I hit, i
 
 - **Problem:** The very first Email node test failed.
 - **Symptoms:** `$node, $node are not accessible in this action`, and after fixing that, a separate `404 page not found`.
-- **Root Cause:** The variable error came from using a template syntax Shuffle didn't resolve correctly between those specific nodes. The 404 came from selecting **Send Email Shuffle** — which routes through Shuffle's own cloud-hosted `shuffler.io` service and needs an API key from that platform — instead of **Send Email SMTP**, which talks to a real mail relay directly.
+- **Root Cause:** The variable error came from using a template syntax Shuffle didn't resolve correctly between those specific nodes. The 404 came from selecting **Send Email Shuffle** - which routes through Shuffle's own cloud-hosted `shuffler.io` service and needs an API key from that platform - instead of **Send Email SMTP**, which talks to a real mail relay directly.
 - **Solution:** Fixed the variable reference syntax to match what the node actually exposed, then switched the action to **Send Email SMTP** configured against Gmail's relay.
 - **What I learned:** Shuffle has multiple actions with almost identical names that behave completely differently — read the exact action name before assuming it matches what worked previously.
-- *(Screenshot: `23_shuffle_email_node_variable_error.png`, `26_shuffler_io_settings_apikey.png`, `25_smtp_404_page_not_found_debug.png`)*
-
+- ![23_shuffle_email_node_variable_error.png](./screenshots/23_shuffle_email_node_variable_error.png)
+- ![26_shuffler_io_settings_apikey.png](./screenshots/26_shuffler_io_settings_apikey.png)
+- ![25_smtp_404_page_not_found_debug.png](./screenshots/25_smtp_404_page_not_found_debug.png)
 ### 19. Final successful workflow execution
 
-- **Problem:** None — this is the payoff after fixing all eighteen issues above.
-- **Symptoms:** The full chain — webhook received, HTTP node authenticated against the Wazuh API, SMTP node sent the email — ran correctly and repeatably.
+- **Problem:** None - this is the payoff after fixing all eighteen issues above.
+- **Symptoms:** The full chain - webhook received, HTTP node authenticated against the Wazuh API, SMTP node sent the email - ran correctly and repeatably.
 - **Solution:** Verified with both the scripted loop of synthetic alerts (Chapter 9) and real endpoint attack telemetry (Chapter 8).
 - **What I learned:** Every one of the eighteen issues above touched a different layer of the stack — packaging, networking, authentication, resource limits, Docker internals, application-level configuration. Getting a SIEM+SOAR pipeline working end-to-end meant being comfortable debugging at all of those layers, not just clicking through a UI until something happened to work.
 
 ---
 
-## Chapter 11 — What I'm Adding Next (Not Yet Implemented)
+## Chapter 11 - What I'm Adding Next (Not Yet Implemented)
 
 Everything above this point is what I actually built and tested. This section is different — it's work I've scoped out but haven't run yet, and I'm labeling it that way on purpose instead of blurring the line.
 
@@ -658,28 +662,49 @@ Also not implemented yet. When it is, I'll update this section with the real con
 
 ### Planned: a short demo recording
 
-A 2-minute screen recording showing an alert fire end-to-end — attack command run on Windows, alert appear in Wazuh, workflow execute in Shuffle, email land in the inbox — all in one continuous take. Screenshots prove each step happened; a video proves they happened *in sequence*, which is a different (and stronger) kind of proof.
+A 2-minute screen recording showing an alert fire end-to-end — attack command run on Windows, alert appear in Wazuh, workflow execute in Shuffle, email land in the inbox - all in one continuous take. Screenshots prove each step happened; a video proves they happened *in sequence*, which is a different (and stronger) kind of proof.
 
 ---
 
 ## Final Results
 
-*(Full captioned screenshot set — 33 images total — lives in [`/screenshots`](./screenshots))*
+*(Full screenshot set - 33 images total - also browsable directly in [`/screenshots`](./screenshots))*
 
-**Figure 1:** `01_shuffle_login_page.png` — Shuffle's login screen after first deployment.
-**Figure 2:** `04_shuffle_containers_running.png` — Wazuh and Shuffle containers running together on the same host without conflict.
-**Figure 3:** `15_wazuh_threat_hunting_dashboard.png` — Wazuh alert dashboard showing live Sysmon detections for the monitored endpoint.
-**Figure 4:** `17_shuffle_workflow_alerts_flowing.png` — Successful execution of the Shuffle workflow after receiving a Wazuh alert.
-**Figure 5:** `19_webhook_401_unauthorized_debug.png` — the 401/Invalid token error encountered mid-integration (Challenge #9).
-**Figure 6:** `24_smtp_gmail_config_success.png` — working SMTP configuration after correcting the email node mix-up.
-**Figure 7:** `28_curl_loop_sending_test_alerts.png` — the scripted loop firing ten synthetic alerts through the webhook.
-**Figure 8:** `30_wazuh_213_hits_final_events.png` — 213 hits recorded in Wazuh Threat Hunting for the endpoint over the session.
-**Figure 9:** `31_final_pdf_threat_hunting_report.png` — the auto-generated PDF Threat Hunting report exported from the Wazuh Dashboard.
-**Figure 10:** `32_email_alerts_inbox.png` — automated email notification generated by the SOAR workflow, confirming successful alert processing.
-**Figure 11:** `33_email_alert_detail.png` — a single alert email opened, showing the content pushed through from the workflow.
+![01_shuffle_login_page.png](./screenshots/01_shuffle_login_page.png)
+*Figure 1: Shuffle's login screen after first deployment.*
+
+![04_shuffle_containers_running.png](./screenshots/04_shuffle_containers_running.png)
+*Figure 2: Wazuh and Shuffle containers running together on the same host without conflict.*
+
+![15_wazuh_threat_hunting_dashboard.png](./screenshots/15_wazuh_threat_hunting_dashboard.png)
+*Figure 3: Wazuh alert dashboard showing live Sysmon detections for the monitored endpoint.*
+
+![17_shuffle_workflow_alerts_flowing.png](./screenshots/17_shuffle_workflow_alerts_flowing.png)
+*Figure 4: Successful execution of the Shuffle workflow after receiving a Wazuh alert.*
+
+![19_webhook_401_unauthorized_debug.png](./screenshots/19_webhook_401_unauthorized_debug.png)
+*Figure 5: The 401/Invalid token error encountered mid-integration (Challenge #9).*
+
+![24_smtp_gmail_config_success.png](./screenshots/24_smtp_gmail_config_success.png)
+*Figure 6: Working SMTP configuration after correcting the email node mix-up.*
+
+![28_curl_loop_sending_test_alerts.png](./screenshots/28_curl_loop_sending_test_alerts.png)
+*Figure 7: The scripted loop firing ten synthetic alerts through the webhook.*
+
+![30_wazuh_213_hits_final_events.png](./screenshots/30_wazuh_213_hits_final_events.png)
+*Figure 8: 213 hits recorded in Wazuh Threat Hunting for the endpoint over the session.*
+
+![31_final_pdf_threat_hunting_report.png](./screenshots/31_final_pdf_threat_hunting_report.png)
+*Figure 9: The auto-generated PDF Threat Hunting report exported from the Wazuh Dashboard.*
+
+![32_email_alerts_inbox.png](./screenshots/32_email_alerts_inbox.png)
+*Figure 10: Automated email notification generated by the SOAR workflow, confirming successful alert processing.*
+
+![33_email_alert_detail.png](./screenshots/33_email_alert_detail.png)
+*Figure 11: A single alert email opened, showing the content pushed through from the workflow.*
 
 ---
 
 ## Closing Notes
 
-Everything above reflects the order things actually happened, including the disk-corruption incident in Chapter 10 that forced a full rebuild of both stacks. If you're building something similar yourself, expect to hit some version of most of these nineteen issues — that's normal, and it's genuinely where most of the learning happens.
+Everything above reflects the order things actually happened, including the disk-corruption incident in Chapter 10 that forced a full rebuild of both stacks. If you're building something similar yourself, expect to hit some version of most of these nineteen issues - that's normal, and it's genuinely where most of the learning happens.
